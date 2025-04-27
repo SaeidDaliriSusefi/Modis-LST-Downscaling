@@ -1,25 +1,27 @@
-var cor = [
-  [45.832858804169355,36.64822615381035],
-  [46.568942788544355,36.64822615381035],
-  [46.568942788544355,37.17965366966633],
-  [45.832858804169355,37.17965366966633],
-  [45.832858804169355,36.64822615381035]
-  ]
+var country_name =  'Italy'                            
+var region_name = 'Lombardia'  
+var city_name = 'Lecco'
+var time_start = '2020'
+var time_end = '2021'
+
+// Load and filter administrative boundaries
+var city = ee.FeatureCollection("FAO/GAUL_SIMPLIFIED_500m/2015/level2")
+  .filter(ee.Filter.and(
+    ee.Filter.eq('ADM0_NAME', country_name),
+    ee.Filter.eq('ADM1_NAME', region_name),
+    ee.Filter.eq('ADM2_NAME', city_name)
+  ));
 
 
-var geometry = ee.Geometry.Polygon(cor)
-
-Map.centerObject(geometry)
-
-
-var time_start = '2013', time_end = '2024'
+var time_start = '2013'
+var time_end = '2024'
 
 var landsat = ee.ImageCollection("LANDSAT/LC08/C02/T1_L2")
 .filterDate(time_start, time_end)
-.filterBounds(geometry)
+.filterBounds(city)
 .filter(ee.Filter.lt('CLOUD_COVER', 10))
-.filter(ee.Filter.eq('WRS_PATH', 168))
-.filter(ee.Filter.eq('WRS_ROW', 34))
+.filter(ee.Filter.eq('WRS_PATH', 194))
+.filter(ee.Filter.eq('WRS_ROW', 28))
 .map(function(img){
   var tir = img.select('ST_B10')
   var tir_gain = ee.Number(img.get('TEMPERATURE_MULT_BAND_ST_B10'))
@@ -71,7 +73,7 @@ var modis100 = collection.map(function(img){
   .copyProperties(img, img.propertyNames())
   })
 
-Map.addLayer(modis100.toBands().clip(geometry),[],'modis',false)
+Map.addLayer(modis100.toBands().clip(city),[],'modis',false)
 
 
 var mod_temp_100 = modis
@@ -79,5 +81,7 @@ var mod_temp_100 = modis
 .map(function(img){
   return img.addBands(img.multiply(model_gain).add(model_offset).rename('sharpened'))
   })
-  
-Map.addLayer(mod_temp_100.toBands().clip(geometry),[],'mod100',false)
+
+Map.addLayer(city,{cplor:'red'},'city',false)
+Map.addLayer(mod_temp_100.toBands().clip(city),[],'mod100',false)
+
